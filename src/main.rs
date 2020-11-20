@@ -11,9 +11,8 @@ use std::cmp::Ordering;
 type Point = Point2<f32>;
 type Line = (Point, Point);
 
-
 fn quickhull_init(points: &[Point]) -> Option<Line> {
-    fn pt_compare (a: &Point, b: &Point) -> Ordering {
+    fn pt_compare(a: &Point, b: &Point) -> Ordering {
         f32_cmp(a.x, b.x).then(f32_cmp(a.y, b.y))
     }
     let min = *points.iter().min_by(|&a, &b| pt_compare(a, b))?;
@@ -21,9 +20,26 @@ fn quickhull_init(points: &[Point]) -> Option<Line> {
     Some((min, max))
 }
 
-fn quickhull(points: &[Point], line: &Line) -> Vec<Line> {
-    if points.is_empty() { return vec![] }
-    vec![]
+fn quickhull(points: &[Point], line: Line) -> Vec<Line> {
+    let right = points
+        .iter()
+        .copied()
+        .filter(|&pt| line_right(line, pt))
+        .collect::<Vec<_>>();
+
+    if right.is_empty() {
+        return vec![line];
+    }
+
+    let furthest = right
+        .iter()
+        .max_by(|&a, &b| f32_cmp(line_dist(line, *a), line_dist(line, *b)))
+        .unwrap();
+
+    let mut lines = Vec::new();
+    lines.append(&mut quickhull(&right, (*furthest, line.1)));
+    lines.append(&mut quickhull(&right, (line.0, *furthest)));
+    lines
 }
 
 fn f32_cmp(a: f32, b: f32) -> Ordering {
@@ -31,7 +47,7 @@ fn f32_cmp(a: f32, b: f32) -> Ordering {
 }
 
 // https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-fn line_dist((a, b): &Line, pt: Point) -> f32 {
+fn line_dist((a, b): Line, pt: Point) -> f32 {
     let length = (a - b).magnitude();
     let cross = b.x * a.y - b.y * a.x;
     let numerator = ((b.y - a.y) * pt.x - (b.x - a.x) * pt.y + cross).abs();
@@ -41,13 +57,11 @@ fn line_dist((a, b): &Line, pt: Point) -> f32 {
 fn line_right((a, b): Line, point: Point) -> bool {
     let l = b - a;
     let p = point - a;
-    l.x*p.y - l.y*p.x < 0.
+    l.x * p.y - l.y * p.x < 0.
 }
 
 fn triangle_prot(a: Point, b: Point, c: Point, pt: Point) -> bool {
-    line_right((c, a), pt) &&
-    line_right((a, b), pt) &&
-    line_right((b, c), pt)
+    line_right((c, a), pt) && line_right((a, b), pt) && line_right((b, c), pt)
 }
 
 fn triangle_member(a: Point, b: Point, c: Point, pt: Point) -> bool {
@@ -69,13 +83,12 @@ fn test_triangle_member() {
     let b = Point::new(1., -1.);
     let c = Point::new(-1., -1.);
     let test_all_order = |pt| {
-        triangle_member(a, b, c, pt) &&
-        triangle_member(b, c, a, pt) &&
-        triangle_member(c, a, b, pt) &&
-
-        triangle_member(a, c, b, pt) &&
-        triangle_member(b, a, c, pt) &&
-        triangle_member(c, b, a, pt)
+        triangle_member(a, b, c, pt)
+            && triangle_member(b, c, a, pt)
+            && triangle_member(c, a, b, pt)
+            && triangle_member(a, c, b, pt)
+            && triangle_member(b, a, c, pt)
+            && triangle_member(c, b, a, pt)
     };
     assert!(test_all_order(Point2::origin()));
     assert!(test_all_order(Point2::new(0.1, 0.1)));
@@ -136,16 +149,16 @@ impl App2D for MyApp {
         let line = (Point::new(1., -1.), Point::new(-1., 1.));
         let vertices = points
             .iter()
-            //.map(|p| point2d_to_vertex(*p, [1.; 3]))
-            .map(|p| point2d_to_vertex(*p, [line_dist(&line, *p); 3]))
+            .map(|p| point2d_to_vertex(*p, [1.; 3]))
             .collect::<Vec<_>>();
         let indices = (0..vertices.len() as u16).collect::<Vec<_>>();
         let point_mesh = engine.add_mesh(&vertices, &indices)?;
 
         let init = quickhull_init(&points).expect("Empty set");
-        let mut hull = quickhull(&points, &init);
+        let mut hull = quickhull(&points, init);
+        hull.append(&mut quickhull(&points, (init.1, init.0)));
+
         //hull.push(init);
-        hull.push(line);
         let (vertices, indices) = lines_to_mesh(&hull, [0., 1., 0.]);
         let line_mesh = engine.add_mesh(&vertices, &indices)?;
 
@@ -170,13 +183,13 @@ impl App2D for MyApp {
         let points = Object {
             material: self.point_material,
             mesh: self.point_mesh,
-            transform
+            transform,
         };
 
         let lines = Object {
             material: self.line_material,
             mesh: self.line_mesh,
-            transform
+            transform,
         };
 
         FramePacket {
