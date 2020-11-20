@@ -134,7 +134,7 @@ impl App2D for MyApp {
         let point_material = engine.add_material(UNLIT_VERT, UNLIT_FRAG, DrawType::Points)?;
 
         let mut rng = rand::thread_rng();
-        let count = 400;
+        let count = 10_000_000;
         let dist_unif = Uniform::new(0., 1.);
         let angle_unif = Uniform::new(0., std::f32::consts::TAU);
         let mut points = Vec::new();
@@ -147,7 +147,7 @@ impl App2D for MyApp {
         }
 
         let line = (Point::new(1., -1.), Point::new(-1., 1.));
-        let vertices = points
+        let vertices = points[..40_000]
             .iter()
             .map(|p| point2d_to_vertex(*p, [1.; 3]))
             .collect::<Vec<_>>();
@@ -155,8 +155,13 @@ impl App2D for MyApp {
         let point_mesh = engine.add_mesh(&vertices, &indices)?;
 
         let init = quickhull_init(&points).expect("Empty set");
+
+        use std::time::Instant;
+        let begin = Instant::now();
         let mut hull = quickhull(&points, init);
         hull.append(&mut quickhull(&points, (init.1, init.0)));
+        let end = Instant::now();
+        println!("Time: {:?}", end - begin);
 
         //hull.push(init);
         let (vertices, indices) = lines_to_mesh(&hull, [0., 1., 0.]);
