@@ -51,9 +51,10 @@ fn quickhull_recursive(points: &[Point], line: Line, out_lines: &mut Vec<Line>) 
         .collect::<Vec<_>>();
 
     let mut furthest = None;
-    let mut furthest_dist = 0.;
+    let mut furthest_dist = std::f32::MIN; 
+    let v = line.1 - line.0;
     for point in &right {
-        let dist = line_dist(line, *point);
+        let dist = point.x * v.y - point.y * v.x;
         if dist > furthest_dist {
             furthest = Some(*point);
             furthest_dist = dist;
@@ -67,15 +68,6 @@ fn quickhull_recursive(points: &[Point], line: Line, out_lines: &mut Vec<Line>) 
             quickhull_recursive(&right, (line.0, furthest), out_lines);
         }
     }
-}
-
-/// Find the closest distance between a line and a given point
-fn line_dist((a, b): Line, pt: Point) -> f32 {
-    // https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-    let length = (a - b).magnitude();
-    let cross = b.x * a.y - b.y * a.x;
-    let numerator = ((b.y - a.y) * pt.x - (b.x - a.x) * pt.y + cross).abs();
-    numerator / length
 }
 
 /// Returns `true` when the given point is to the right of a given line
