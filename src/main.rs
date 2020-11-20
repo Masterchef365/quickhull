@@ -20,26 +20,24 @@ fn quickhull_init(points: &[Point]) -> Option<Line> {
     Some((min, max))
 }
 
-fn quickhull(points: &[Point], line: Line) -> Vec<Line> {
+fn quickhull(points: &[Point], line: Line, out_lines: &mut Vec<Line>) {
     let right = points
         .iter()
         .copied()
         .filter(|&pt| line_right(line, pt))
         .collect::<Vec<_>>();
 
-    if right.is_empty() {
-        return vec![line];
-    }
-
     let furthest = right
         .iter()
-        .max_by(|&a, &b| f32_cmp(line_dist(line, *a), line_dist(line, *b)))
-        .unwrap();
+        .max_by(|&a, &b| f32_cmp(line_dist(line, *a), line_dist(line, *b)));
 
-    let mut lines = Vec::new();
-    lines.append(&mut quickhull(&right, (*furthest, line.1)));
-    lines.append(&mut quickhull(&right, (line.0, *furthest)));
-    lines
+    match furthest {
+        None => out_lines.push(line),
+        Some(furthest) => {
+            quickhull(&right, (*furthest, line.1), out_lines);
+            quickhull(&right, (line.0, *furthest), out_lines);
+        }
+    }
 }
 
 fn f32_cmp(a: f32, b: f32) -> Ordering {
@@ -58,14 +56,6 @@ fn line_right((a, b): Line, point: Point) -> bool {
     let l = b - a;
     let p = point - a;
     l.x * p.y - l.y * p.x < 0.
-}
-
-fn triangle_prot(a: Point, b: Point, c: Point, pt: Point) -> bool {
-    line_right((c, a), pt) && line_right((a, b), pt) && line_right((b, c), pt)
-}
-
-fn triangle_member(a: Point, b: Point, c: Point, pt: Point) -> bool {
-    triangle_prot(a, b, c, pt) || triangle_prot(c, b, a, pt)
 }
 
 #[test]
@@ -146,7 +136,6 @@ impl App2D for MyApp {
             points.push(Point::new(x, y));
         }
 
-        let line = (Point::new(1., -1.), Point::new(-1., 1.));
         let vertices = points[..40_000]
             .iter()
             .map(|p| point2d_to_vertex(*p, [1.; 3]))
@@ -158,8 +147,9 @@ impl App2D for MyApp {
 
         use std::time::Instant;
         let begin = Instant::now();
-        let mut hull = quickhull(&points, init);
-        hull.append(&mut quickhull(&points, (init.1, init.0)));
+        let mut hull = Vec::new();
+        quickhull(&points, init, &mut hull);
+        quickhull(&points, (init.1, init.0), &mut hull);
         let end = Instant::now();
         println!("Time: {:?}", end - begin);
 
