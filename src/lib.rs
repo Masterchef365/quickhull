@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 pub type Point = nalgebra::Point2<f32>;
 pub type Line = (Point, Point);
 
@@ -52,22 +50,23 @@ fn quickhull_recursive(points: &[Point], line: Line, out_lines: &mut Vec<Line>) 
         .filter(|&pt| line_right(line, pt))
         .collect::<Vec<_>>();
 
-    let furthest = right
-        .iter()
-        .max_by(|&a, &b| f32_cmp(line_dist(line, *a), line_dist(line, *b)));
+    let mut furthest = None;
+    let mut furthest_dist = 0.;
+    for point in &right {
+        let dist = line_dist(line, *point);
+        if dist > furthest_dist {
+            furthest = Some(*point);
+            furthest_dist = dist;
+        }
+    }
 
     match furthest {
         None => out_lines.push(line),
         Some(furthest) => {
-            quickhull_recursive(&right, (*furthest, line.1), out_lines);
-            quickhull_recursive(&right, (line.0, *furthest), out_lines);
+            quickhull_recursive(&right, (furthest, line.1), out_lines);
+            quickhull_recursive(&right, (line.0, furthest), out_lines);
         }
     }
-}
-
-/// Compare two floats in a (semi) sane way
-fn f32_cmp(a: f32, b: f32) -> Ordering {
-    a.partial_cmp(&b).unwrap_or(Ordering::Equal)
 }
 
 /// Find the closest distance between a line and a given point
