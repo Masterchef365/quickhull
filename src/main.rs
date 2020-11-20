@@ -9,8 +9,22 @@ use rand::distributions::{Distribution, Uniform};
 
 type Point = Point2<f32>;
 type Line = (Point, Point);
-fn quickhull(points: &[Point]) -> Vec<Line> {
-    vec![(points[0], points[1])]
+
+
+fn f32_cmp(a: f32, b: f32) -> std::cmp::Ordering {
+    a.partial_cmp(&b).unwrap_or(std::cmp::Ordering::Equal)
+}
+
+
+fn quickhull_init(points: &[Point]) -> Option<Line> {
+    let min = *points.iter().min_by(|a, b| f32_cmp(a.x, b.x))?;
+    let max = *points.iter().max_by(|a, b| f32_cmp(a.x, b.x))?;
+    Some((min, max))
+}
+
+fn quickhull(points: &[Point], line: &Line) -> Vec<Line> {
+    if points.is_empty() { return vec![] }
+    vec![]
 }
 
 fn line_right((a, b): Line, point: Point) -> bool {
@@ -97,7 +111,7 @@ impl App2D for MyApp {
 
         let mut rng = rand::thread_rng();
         let count = 400;
-        let dist_unif = Uniform::new(0., 1.5);
+        let dist_unif = Uniform::new(0., 1.);
         let angle_unif = Uniform::new(0., std::f32::consts::TAU);
         let mut points = Vec::new();
         for _ in 0..count {
@@ -108,22 +122,17 @@ impl App2D for MyApp {
             points.push(Point::new(x, y));
         }
 
-        let a = Point::new(0., 1.);
-        let b = Point::new(1., -1.);
-        let c = Point::new(-1., -1.);
-        let lines = vec![(a, b), (b, c), (c, a)];
-        //let line = (Point::new(1., -1.), Point::new(-1., 1.));
         let vertices = points
             .iter()
-            //.map(|p| point2d_to_vertex(*p, if line_right(line, *p) { [1.; 3] } else { [1., 0., 0.] }))
-            .map(|p| point2d_to_vertex(*p, if triangle_member(a, b, c, *p) { [1.; 3] } else { [1., 0., 0.] }))
+            .map(|p| point2d_to_vertex(*p, [1.; 3]))
             .collect::<Vec<_>>();
         let indices = (0..vertices.len() as u16).collect::<Vec<_>>();
         let point_mesh = engine.add_mesh(&vertices, &indices)?;
 
-        //let hull = quickhull(&points);
-        //let (vertices, indices) = lines_to_mesh(&hull, [0., 1., 0.]);
-        let (vertices, indices) = lines_to_mesh(&lines, [0., 1., 0.]);
+        let init = quickhull_init(&points).expect("Empty set");
+        let mut hull = quickhull(&points, &init);
+        hull.push(init);
+        let (vertices, indices) = lines_to_mesh(&hull, [0., 1., 0.]);
         let line_mesh = engine.add_mesh(&vertices, &indices)?;
 
         Ok(Self {
