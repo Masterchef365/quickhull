@@ -19,15 +19,23 @@ pub fn quickhull(points: &[Point]) -> Vec<Line> {
     lines
 }
 
-/// Find initial line spanning the largest distance over the x axis, and y axis if there's any
-/// ambiguity.
+/// Find initial line spanning the largest distance over the x axis
 fn quickhull_init(points: &[Point]) -> Option<Line> {
-    fn pt_compare(a: &Point, b: &Point) -> Ordering {
-        f32_cmp(a.x, b.x).then(f32_cmp(a.y, b.y))
+    if points.is_empty() { return None }
+    let mut min = std::f32::MAX;
+    let mut min_point = Point::origin();
+    let mut max = std::f32::MIN;
+    let mut max_point = Point::origin();
+    for point in points {
+        if point.x > max {
+            max = point.x;
+            max_point = *point;
+        } else if point.x < min {
+            min = point.x;
+            min_point = *point;
+        }
     }
-    let min = *points.iter().min_by(|&a, &b| pt_compare(a, b))?;
-    let max = *points.iter().max_by(|&a, &b| pt_compare(a, b))?;
-    Some((min, max))
+    Some((min_point, max_point))
 }
 
 /// Recursively find the convex hull of this half of the given point set
