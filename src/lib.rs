@@ -27,10 +27,16 @@ fn quickhull_init(points: &[Point]) -> Option<Line> {
     let mut max = std::f32::MIN;
     let mut max_point = Point::origin();
     for point in points {
-        if point.x > max {
+        if point.x >= max {
+            if point.x == max && point.y < max_point.y {
+                continue;
+            }
             max = point.x;
             max_point = *point;
         } else if point.x < min {
+            if point.x == min && point.y > min_point.y {
+                continue;
+            }
             min = point.x;
             min_point = *point;
         }
