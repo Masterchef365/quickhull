@@ -19,7 +19,7 @@ fn uniform_box(n: u64) -> Vec<Point> {
 fn uniform_box_test(n: u64, c: &mut Criterion) {
     let data = uniform_box(n);
     c.bench_function(&format!("uniform_box {}", n), |b| {
-        b.iter_batched(|| data.clone(), |data| quickhull(&data), BatchSize::SmallInput)
+        b.iter_batched(|| data.clone(), |mut data| quickhull(&mut data), BatchSize::SmallInput)
     });
 }
 

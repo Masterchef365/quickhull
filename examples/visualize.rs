@@ -45,7 +45,7 @@ impl App2D for MyApp {
 
         use std::time::Instant;
         let begin = Instant::now();
-        let hull = quickhull(&points);
+        let hull = quickhull(&mut points);
         let end = Instant::now();
         println!("Time: {:?}", end - begin);
 

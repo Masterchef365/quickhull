@@ -4,17 +4,17 @@ pub type Point = nalgebra::Point2<f32>;
 pub type Line = (Point, Point);
 
 /// Calculate the convex hull from a set of points
-pub fn quickhull(points: &[Point]) -> Vec<Line> {
+pub fn quickhull(points: &mut Vec<Point>) -> Vec<Line> {
     let mut lines = Vec::new();
 
-    let init_line = match quickhull_init(points) {
+    let line_a = match quickhull_init(points) {
         None => return lines,
         Some(l) => l,
     };
 
-    let (init_a, init_b) = init_line;
-    quickhull_recursive(points, (init_a, init_b), &mut lines);
-    quickhull_recursive(points, (init_b, init_a), &mut lines);
+    let line_b = (line_a.1, line_a.0);
+    quickhull_recursive(points, line_a, &mut lines);
+    quickhull_recursive(points, line_b, &mut lines);
 
     lines
 }
@@ -31,22 +31,22 @@ fn quickhull_init(points: &[Point]) -> Option<Line> {
 }
 
 /// Recursively find the convex hull of this half of the given point set
-fn quickhull_recursive(points: &[Point], line: Line, out_lines: &mut Vec<Line>) {
-    let right = points
+fn quickhull_recursive(points: &mut Vec<Point>, line: Line, out_lines: &mut Vec<Line>) {
+    let furthest = points
         .iter()
-        .copied()
-        .filter(|&pt| line_right(line, pt))
-        .collect::<Vec<_>>();
-
-    let furthest = right
-        .iter()
+        .filter(|&pt| line_right(line, *pt))
         .max_by(|&a, &b| f32_cmp(line_dist(line, *a), line_dist(line, *b)));
 
     match furthest {
         None => out_lines.push(line),
         Some(furthest) => {
-            quickhull_recursive(&right, (*furthest, line.1), out_lines);
-            quickhull_recursive(&right, (line.0, *furthest), out_lines);
+            let line_a = (*furthest, line.1);
+            let line_b = (line.0, *furthest);
+            points.retain(|&pt| {
+                !line_right(line, pt) || line_right(line_a, pt) || line_right(line_b, pt)
+            });
+            quickhull_recursive(points, line_a, out_lines);
+            quickhull_recursive(points, line_b, out_lines);
         }
     }
 }
