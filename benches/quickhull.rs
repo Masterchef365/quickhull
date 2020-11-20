@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion, BatchSize};
 use quickhull::*;
 use rand::distributions::{Distribution, Uniform};
 use rand::rngs::SmallRng;
@@ -19,7 +19,7 @@ fn uniform_box(n: u64) -> Vec<Point> {
 fn uniform_box_test(n: u64, c: &mut Criterion) {
     let data = uniform_box(n);
     c.bench_function(&format!("uniform_box {}", n), |b| {
-        b.iter(|| quickhull(black_box(&data)))
+        b.iter_batched(|| data.clone(), |data| quickhull(&data), BatchSize::SmallInput)
     });
 }
 
