@@ -7,13 +7,14 @@ pub type Line = (Point, Point);
 pub fn quickhull(points: &[Point]) -> Vec<Line> {
     let mut lines = Vec::new();
 
-    let (init_line_a, init_line_b) = match quickhull_init(points) {
+    let init_line = match quickhull_init(points) {
         None => return lines,
         Some(l) => l,
     };
 
-    quickhull_recursive(points, (init_line_a, init_line_b), &mut lines);
-    quickhull_recursive(points, (init_line_b, init_line_a), &mut lines);
+    let (init_a, init_b) = init_line;
+    quickhull_recursive(points, (init_a, init_b), &mut lines);
+    quickhull_recursive(points, (init_b, init_a), &mut lines);
 
     lines
 }

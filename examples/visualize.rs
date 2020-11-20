@@ -24,14 +24,14 @@ impl App2D for MyApp {
         let point_material = engine.add_material(UNLIT_VERT, UNLIT_FRAG, DrawType::Points)?;
 
         let mut rng = rand::thread_rng();
-        let count = 1000;
+        let count = 100;
         let dist_unif = Uniform::new(0., 1.);
         let angle_unif = Uniform::new(0., std::f32::consts::TAU);
         let mut points = Vec::new();
         for _ in 0..count {
             let dist = dist_unif.sample(&mut rng);
             let angle = angle_unif.sample(&mut rng);
-            let x = angle.cos() * dist * (angle * 2.).sin();
+            let x = angle.cos() * dist * (angle * 3.).sin();
             let y = angle.sin() * dist;
             points.push(Point::new(x, y));
         }
